@@ -36,6 +36,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.assetstar.ui.theme.AccentCyan
+import com.example.assetstar.ui.theme.AccentLime
+import com.example.assetstar.ui.theme.AccentYellow
 import com.example.assetstar.ui.theme.PanelBlue
 import com.example.assetstar.ui.theme.SpaceBlack
 import com.example.assetstar.ui.theme.SpaceBlue
@@ -44,6 +46,7 @@ import com.example.assetstar.ui.theme.SoftWhite
 import com.example.assetstar.ui.theme.TextSecondary
 import com.example.assetstar.util.DateUtils
 import com.example.assetstar.util.ImageUtils
+import com.example.assetstar.util.AssetVisuals
 import com.example.assetstar.util.MoneyFormatter
 
 @Composable
@@ -53,11 +56,14 @@ fun AssetDetailScreen(
     onEdit: (Long) -> Unit,
     onDelete: () -> Unit,
     onDeleted: () -> Unit,
+    onDeleteFeedback: () -> Unit = {},
+    onToggleCherished: () -> Unit = {},
 ) {
     val showDialog = remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.deleted) {
         if (uiState.deleted) {
+            onDeleteFeedback()
             onDeleted()
         }
     }
@@ -65,6 +71,9 @@ fun AssetDetailScreen(
     val asset = uiState.asset ?: return
     val metrics = uiState.metrics ?: return
     val currentValuation = asset.soldPrice ?: asset.estimatedResidualValue ?: asset.purchasePrice
+    val starLevel = AssetVisuals.starLevel(asset)
+    val cherished = AssetVisuals.isCherished(asset)
+    val displayNote = AssetVisuals.displayNote(asset.note)
 
     Box(
         modifier = Modifier
@@ -144,6 +153,23 @@ fun AssetDetailScreen(
                         color = TextSecondary,
                         modifier = Modifier.padding(top = 8.dp),
                     )
+                    Row(
+                        modifier = Modifier.padding(top = 12.dp),
+                        horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = AssetVisuals.starText(starLevel),
+                            color = if (starLevel >= 5) AccentYellow else AccentLime,
+                        )
+                        Text(
+                            text = "资料完成度 ${AssetVisuals.completionPercent(asset)}%",
+                            color = TextSecondary,
+                        )
+                        if (cherished) {
+                            Text(text = "珍藏", color = AccentLime)
+                        }
+                    }
                     DetailRow("购买价格", MoneyFormatter.format(asset.purchasePrice))
                     DetailRow("当前估值", MoneyFormatter.format(currentValuation))
                     DetailRow("预计残值", MoneyFormatter.format(asset.estimatedResidualValue ?: 0.0))
@@ -160,14 +186,14 @@ fun AssetDetailScreen(
                         DetailRow("卖出价格", MoneyFormatter.format(asset.soldPrice ?: 0.0))
                         DetailRow("卖出日期", DateUtils.formatDate(asset.soldDate))
                     }
-                    if (!asset.note.isNullOrBlank()) {
+                    if (!displayNote.isNullOrBlank()) {
                         Text(
                             text = "备注",
                             color = TextSecondary,
                             modifier = Modifier.padding(top = 16.dp),
                         )
                         Text(
-                            text = asset.note,
+                            text = displayNote,
                             color = SoftWhite,
                             modifier = Modifier.padding(top = 8.dp),
                         )
@@ -182,6 +208,14 @@ fun AssetDetailScreen(
                     .padding(top = 18.dp),
             ) {
                 Text("编辑资产")
+            }
+            OutlinedButton(
+                onClick = onToggleCherished,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 10.dp),
+            ) {
+                Text(if (cherished) "取消珍藏标识" else "标记为珍藏")
             }
         }
     }
