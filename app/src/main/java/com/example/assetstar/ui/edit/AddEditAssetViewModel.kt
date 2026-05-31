@@ -13,6 +13,7 @@ import com.example.assetstar.domain.model.Asset
 import com.example.assetstar.domain.model.AssetCategory
 import com.example.assetstar.domain.model.AssetStatus
 import com.example.assetstar.domain.model.CategoryDisplaySettings
+import com.example.assetstar.util.AssetVisuals
 import com.example.assetstar.util.DateUtils
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,6 +54,7 @@ class AddEditAssetViewModel(
         ?.let(AssetCategory::fromStorage)
         ?: AssetCategory.DIGITAL
     private var createdAt: Long = System.currentTimeMillis()
+    private var isCherished: Boolean = false
     private val state = MutableStateFlow(
         AddEditAssetUiState(
             assetId = assetId,
@@ -77,6 +79,7 @@ class AddEditAssetViewModel(
             viewModelScope.launch {
                 val asset = container.getAssetByIdUseCase(assetId).first() ?: return@launch
                 createdAt = asset.createdAt
+                isCherished = AssetVisuals.isCherished(asset)
                 state.value = state.value.copy(
                     assetId = asset.id,
                     isEditing = true,
@@ -87,7 +90,7 @@ class AddEditAssetViewModel(
                     purchaseDate = asset.purchaseDate,
                     estimatedResidualValue = asset.estimatedResidualValue?.toString().orEmpty(),
                     imageUri = asset.imageUri,
-                    note = asset.note.orEmpty(),
+                    note = AssetVisuals.displayNote(asset.note).orEmpty(),
                     soldPrice = asset.soldPrice?.toString().orEmpty(),
                     soldDate = asset.soldDate,
                 )
@@ -174,7 +177,7 @@ class AddEditAssetViewModel(
                 purchasePrice = purchasePrice,
                 purchaseDate = current.purchaseDate,
                 imageUri = current.imageUri,
-                note = current.note.ifBlank { null },
+                note = AssetVisuals.persistedNote(current.note, isCherished),
                 estimatedResidualValue = residualValue,
                 soldPrice = if (current.status == AssetStatus.SOLD) soldPrice else null,
                 soldDate = if (current.status == AssetStatus.SOLD) current.soldDate else null,
