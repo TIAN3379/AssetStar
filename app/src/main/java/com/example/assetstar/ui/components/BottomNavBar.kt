@@ -238,7 +238,7 @@ fun BottomNavBar(
                     indication = null,
                 ) {
                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onNavigate("home")
+                    onNavigate("space_voyage")
                 },
             contentAlignment = Alignment.Center,
         ) {

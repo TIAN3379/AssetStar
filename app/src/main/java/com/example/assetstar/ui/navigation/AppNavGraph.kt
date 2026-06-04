@@ -58,6 +58,8 @@ import com.example.assetstar.ui.list.AssetListScreen
 import com.example.assetstar.ui.list.AssetListViewModel
 import com.example.assetstar.ui.profile.ProfileScreen
 import com.example.assetstar.ui.profile.ProfileViewModel
+import com.example.assetstar.ui.voyage.SpaceVoyageScreen
+import com.example.assetstar.ui.voyage.SpaceVoyageViewModel
 import com.example.assetstar.ui.theme.AccentCyan
 import com.example.assetstar.ui.theme.PanelBlueStrong
 import com.example.assetstar.ui.theme.SoftWhite
@@ -75,6 +77,7 @@ object AppRoutes {
     const val EDIT = "edit"
     const val CATEGORY_OVERVIEW = "category_overview"
     const val CATEGORY_ASSETS = "category_assets"
+    const val SPACE_VOYAGE = "space_voyage"
 
     fun listRoute(
         category: AssetCategory = AssetCategory.ALL,
@@ -129,7 +132,8 @@ fun AppNavGraph() {
     }
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
-    val showBottomBar = BottomDestinations.any { currentRoute?.startsWith(it.route) == true }
+    val showBottomBar = BottomDestinations.any { currentRoute?.startsWith(it.route) == true } ||
+        currentRoute == AppRoutes.SPACE_VOYAGE
 
     Scaffold(
         bottomBar = {
@@ -346,6 +350,19 @@ fun AppNavGraph() {
                     onCategoryEditFeedback = {
                         showCenterToast("分类设置已更新")
                     },
+                )
+            }
+
+            composable(AppRoutes.SPACE_VOYAGE) {
+                val viewModel: SpaceVoyageViewModel = viewModel(factory = SpaceVoyageViewModel.Factory)
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                SpaceVoyageScreen(
+                    uiState = uiState,
+                    onBack = { navController.popBackStack() },
+                    onAddEntry = viewModel::addEntry,
+                    onDeleteEntry = viewModel::deleteEntry,
+                    onMonthlyBudgetChange = viewModel::updateMonthlyBudget,
+                    onAccountBaseBalanceChange = viewModel::updateAccountBaseBalance,
                 )
             }
         }

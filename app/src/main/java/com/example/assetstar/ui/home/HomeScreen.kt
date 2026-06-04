@@ -254,10 +254,6 @@ fun HomeScreen(
             }
         }
 
-        HomeEntryEffect(
-            active = visible,
-            modifier = Modifier.fillMaxSize(),
-        )
         HomeAssetEventEffect(
             event = visualEvent,
             modifier = Modifier.fillMaxSize(),
@@ -274,81 +270,6 @@ private data class HomeVisualEvent(
     val type: HomeVisualEventType,
     val nonce: Int,
 )
-
-@Composable
-private fun HomeEntryEffect(
-    active: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    val progress = remember { Animatable(0f) }
-    LaunchedEffect(active) {
-        if (active) {
-            progress.snapTo(0f)
-            progress.animateTo(
-                targetValue = 1f,
-                animationSpec = tween(durationMillis = 1_650, easing = FastOutSlowInEasing),
-            )
-        }
-    }
-    val value = progress.value
-    if (value < 1f) {
-        Canvas(modifier = modifier) {
-            val center = Offset(size.width / 2f, size.height * 0.43f)
-            val radius = size.minDimension * (0.18f + value * 0.72f)
-            val alpha = (1f - value).coerceIn(0f, 1f)
-
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        AccentCyan.copy(alpha = 0.20f * value),
-                        AccentBlue.copy(alpha = 0.10f * value),
-                        Color.Transparent,
-                    ),
-                    center = center,
-                    radius = size.width * 0.72f,
-                ),
-                radius = size.width * 0.72f,
-                center = center,
-            )
-
-            drawCircle(
-                color = AccentCyan.copy(alpha = 0.18f * alpha),
-                radius = radius,
-                center = center,
-                style = Stroke(width = 1.2.dp.toPx(), cap = StrokeCap.Round),
-            )
-            drawArc(
-                brush = Brush.sweepGradient(
-                    colors = listOf(
-                        Color.Transparent,
-                        AccentCyan.copy(alpha = 0.78f * alpha),
-                        SoftWhite.copy(alpha = 0.42f * alpha),
-                        Color.Transparent,
-                    ),
-                    center = center,
-                ),
-                startAngle = value * 360f,
-                sweepAngle = 74f,
-                useCenter = false,
-                topLeft = Offset(center.x - radius, center.y - radius),
-                size = androidx.compose.ui.geometry.Size(radius * 2f, radius * 2f),
-                style = Stroke(width = 2.2.dp.toPx(), cap = StrokeCap.Round),
-            )
-            repeat(4) { index ->
-                val angle = (value * 2f * PI + index * PI / 2f).toFloat()
-                val dotRadius = radius * (0.72f + index * 0.06f)
-                drawCircle(
-                    color = AccentLime.copy(alpha = 0.50f * alpha),
-                    radius = (2.2f - index * 0.2f).dp.toPx(),
-                    center = Offset(
-                        x = center.x + dotRadius * cos(angle),
-                        y = center.y + dotRadius * sin(angle),
-                    ),
-                )
-            }
-        }
-    }
-}
 
 @Composable
 private fun HomeAssetEventEffect(
