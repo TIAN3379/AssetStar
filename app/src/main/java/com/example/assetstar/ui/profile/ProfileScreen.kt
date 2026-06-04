@@ -57,6 +57,8 @@ fun ProfileScreen(
     onCategoryReset: (AssetCategory) -> Unit,
     onUseUsdChange: (Boolean) -> Unit,
     onRefreshExchangeRate: () -> Unit,
+    onClearAllFeedback: () -> Unit = {},
+    onCategoryEditFeedback: () -> Unit = {},
 ) {
     val showDialog = remember { mutableStateOf(false) }
     var editingCategory by remember { mutableStateOf<AssetCategory?>(null) }
@@ -145,6 +147,7 @@ fun ProfileScreen(
                     onClick = {
                         showDialog.value = false
                         onClearAll()
+                        onClearAllFeedback()
                     },
                 ) { Text("确认清空") }
             },
@@ -163,10 +166,12 @@ fun ProfileScreen(
                 onCategoryNameChange(category, name)
                 onCategoryIconChange(category, iconSource)
                 editingCategory = null
+                onCategoryEditFeedback()
             },
             onReset = {
                 onCategoryReset(category)
                 editingCategory = null
+                onCategoryEditFeedback()
             },
         )
     }

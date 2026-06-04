@@ -12,10 +12,10 @@ import com.example.assetstar.AssetStarApplication
 import com.example.assetstar.domain.model.Asset
 import com.example.assetstar.domain.model.AssetMetrics
 import com.example.assetstar.domain.model.CategoryDisplaySettings
+import com.example.assetstar.util.AssetVisuals
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -57,6 +57,18 @@ class AssetDetailViewModel(
         viewModelScope.launch {
             container.deleteAssetUseCase(asset)
             deleted.value = true
+        }
+    }
+
+    fun toggleCherished() {
+        val asset = uiState.value.asset ?: return
+        viewModelScope.launch {
+            container.updateAssetUseCase(
+                asset.copy(
+                    note = AssetVisuals.toggleCherishedNote(asset.note),
+                    updatedAt = System.currentTimeMillis(),
+                ),
+            )
         }
     }
 

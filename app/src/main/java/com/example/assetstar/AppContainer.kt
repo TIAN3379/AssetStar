@@ -6,6 +6,10 @@ import com.example.assetstar.data.repository.AssetRepository
 import com.example.assetstar.data.repository.AssetRepositoryImpl
 import com.example.assetstar.data.repository.CategorySettingsRepository
 import com.example.assetstar.data.repository.CurrencySettingsRepository
+import com.example.assetstar.data.repository.LedgerRepository
+import com.example.assetstar.data.repository.LedgerRepositoryImpl
+import com.example.assetstar.data.repository.LedgerBudgetRepository
+import com.example.assetstar.data.repository.LedgerAccountRepository
 import com.example.assetstar.domain.calculator.AssetCalculator
 import com.example.assetstar.domain.usecase.AddAssetUseCase
 import com.example.assetstar.domain.usecase.ClearAllAssetsUseCase
@@ -23,9 +27,14 @@ class AppContainer(context: Context) {
     val assetCalculator = AssetCalculator()
     val categorySettingsRepository = CategorySettingsRepository(context)
     val currencySettingsRepository = CurrencySettingsRepository(context)
+    val ledgerBudgetRepository = LedgerBudgetRepository(context)
+    val ledgerAccountRepository = LedgerAccountRepository(context)
 
     val repository: AssetRepository = AssetRepositoryImpl(
         dao = database.assetDao(),
+    )
+    val ledgerRepository: LedgerRepository = LedgerRepositoryImpl(
+        dao = database.ledgerDao(),
     )
 
     val getAssetsUseCase = GetAssetsUseCase(repository)

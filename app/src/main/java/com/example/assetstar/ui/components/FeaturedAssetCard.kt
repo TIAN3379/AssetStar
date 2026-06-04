@@ -44,9 +44,12 @@ import coil.compose.AsyncImage
 import com.example.assetstar.domain.model.Asset
 import com.example.assetstar.domain.model.AssetMetrics
 import com.example.assetstar.ui.theme.AccentCyan
+import com.example.assetstar.ui.theme.AccentLime
+import com.example.assetstar.ui.theme.AccentYellow
 import com.example.assetstar.ui.theme.PanelBlue
 import com.example.assetstar.ui.theme.SoftWhite
 import com.example.assetstar.ui.theme.TextSecondary
+import com.example.assetstar.util.AssetVisuals
 import com.example.assetstar.util.DateUtils
 import com.example.assetstar.util.ImageUtils
 import com.example.assetstar.util.MoneyFormatter
@@ -94,6 +97,11 @@ fun FeaturedAssetCard(
         animationSpec = androidx.compose.animation.core.tween(160),
         label = "featuredScale",
     )
+    val starLevel = AssetVisuals.starLevel(asset)
+    val highValue = AssetVisuals.isHighValue(asset)
+    val cherished = AssetVisuals.isCherished(asset)
+    val completion = AssetVisuals.completionPercent(asset)
+    val highlightColor = if (starLevel >= 5) AccentYellow else AccentLime
 
     Box(
         modifier = modifier
@@ -112,11 +120,19 @@ fun FeaturedAssetCard(
             .border(
                 width = 1.dp,
                 brush = Brush.linearGradient(
-                    colors = listOf(
-                        AccentCyan.copy(alpha = 0.20f),
-                        SoftWhite.copy(alpha = 0.14f),
-                        AccentCyan.copy(alpha = 0.10f),
-                    ),
+                    colors = if (highValue) {
+                        listOf(
+                            highlightColor.copy(alpha = 0.62f),
+                            SoftWhite.copy(alpha = 0.18f),
+                            AccentCyan.copy(alpha = 0.18f),
+                        )
+                    } else {
+                        listOf(
+                            AccentCyan.copy(alpha = 0.20f),
+                            SoftWhite.copy(alpha = 0.14f),
+                            AccentCyan.copy(alpha = 0.10f),
+                        )
+                    },
                 ),
                 shape = RoundedCornerShape(28.dp),
             )
@@ -126,6 +142,20 @@ fun FeaturedAssetCard(
                 onClick = onClick,
             ),
     ) {
+        if (highValue) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = Brush.radialGradient(
+                            colors = listOf(
+                                highlightColor.copy(alpha = 0.14f),
+                                Color.Transparent,
+                            ),
+                        ),
+                    ),
+            )
+        }
         Box(
             modifier = Modifier
                 .align(Alignment.TopStart)
@@ -149,8 +179,8 @@ fun FeaturedAssetCard(
                 color = TextSecondary,
                 fontSize = 13.sp,
             )
-            Row(
-                modifier = Modifier
+                Row(
+                    modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
                     .padding(top = 6.dp),
@@ -173,6 +203,31 @@ fun FeaturedAssetCard(
                         lineHeight = 14.sp,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            text = AssetVisuals.starText(starLevel),
+                            color = highlightColor,
+                            fontSize = 9.sp,
+                            maxLines = 1,
+                        )
+                        if (cherished) {
+                            Text(
+                                text = "珍藏",
+                                color = AccentLime,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                        }
+                        Text(
+                            text = "资料 $completion%",
+                            color = TextSecondary,
+                            fontSize = 9.sp,
+                            maxLines = 1,
+                        )
+                    }
                     Text(
                         text = "购入价 ${MoneyFormatter.format(asset.purchasePrice)}",
                         color = TextSecondary,

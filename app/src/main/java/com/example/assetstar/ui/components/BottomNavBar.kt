@@ -46,6 +46,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -77,6 +79,7 @@ fun BottomNavBar(
     onNavigate: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val haptic = LocalHapticFeedback.current
     val transition = rememberInfiniteTransition(label = "bottomBar")
     val pulse by transition.animateFloat(
         initialValue = 0.92f,
@@ -233,7 +236,10 @@ fun BottomNavBar(
                 .clickable(
                     interactionSource = centerInteraction,
                     indication = null,
-                ) { onNavigate("home") },
+                ) {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onNavigate("space_voyage")
+                },
             contentAlignment = Alignment.Center,
         ) {
             Box(
@@ -282,6 +288,7 @@ private fun BottomNavItem(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
+    val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -294,7 +301,14 @@ private fun BottomNavItem(
         modifier = Modifier
             .scale(scale)
             .clip(RoundedCornerShape(18.dp))
-            .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onClick()
+                },
+            )
             .padding(top = 10.dp, bottom = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,

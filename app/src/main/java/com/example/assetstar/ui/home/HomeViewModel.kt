@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.stateIn
 
 data class HomeUiState(
     val stats: AssetStats = AssetStats(),
+    val assets: List<Asset> = emptyList(),
     val categoryStats: List<CategoryStats> = emptyList(),
     val featuredAssets: List<Asset> = emptyList(),
     val featuredMetrics: Map<Long, AssetMetrics> = emptyMap(),
@@ -41,6 +42,7 @@ class HomeViewModel(
             val carouselAssets = if (inUseAssets.isNotEmpty()) inUseAssets else orderedAssets
             HomeUiState(
                 stats = stats,
+                assets = orderedAssets,
                 categoryStats = categoryStats,
                 featuredAssets = carouselAssets,
                 featuredMetrics = carouselAssets.associate { asset ->

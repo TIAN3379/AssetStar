@@ -1,9 +1,12 @@
 package com.example.assetstar.ui.home
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,8 +42,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -49,7 +56,10 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import com.example.assetstar.R
+import com.example.assetstar.domain.model.AssetStatus
 import com.example.assetstar.domain.model.AssetCategory
 import com.example.assetstar.domain.model.CategoryDisplaySettings
 import com.example.assetstar.ui.components.FeaturedAssetCarousel
@@ -75,6 +85,9 @@ import com.example.assetstar.ui.theme.AssetStarTheme
 import com.example.assetstar.ui.theme.PanelBlue
 import com.example.assetstar.ui.theme.SoftWhite
 import com.example.assetstar.ui.theme.TextSecondary
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Composable
 fun HomeScreen(
@@ -87,7 +100,36 @@ fun HomeScreen(
 ) {
     var visible by remember { mutableStateOf(false) }
     var amountsVisible by rememberSaveable { mutableStateOf(true) }
+    var previousAssetStatuses by remember { mutableStateOf<Map<Long, AssetStatus>?>(null) }
+    var visualEvent by remember { mutableStateOf<HomeVisualEvent?>(null) }
+    var visualEventNonce by remember { mutableStateOf(0) }
     LaunchedEffect(Unit) { visible = true }
+    LaunchedEffect(uiState.assets) {
+        val currentStatuses = uiState.assets.associate { it.id to it.status }
+        val previous = previousAssetStatuses
+        if (previous != null) {
+            val hasRetired = uiState.assets.any { asset ->
+                previous[asset.id] != null &&
+                    previous[asset.id] != AssetStatus.RETIRED &&
+                    asset.status == AssetStatus.RETIRED
+            }
+            val hasSold = uiState.assets.any { asset ->
+                previous[asset.id] != null &&
+                    previous[asset.id] != AssetStatus.SOLD &&
+                    asset.status == AssetStatus.SOLD
+            }
+            val type = when {
+                hasSold -> HomeVisualEventType.SOLD_SHATTER
+                hasRetired -> HomeVisualEventType.RETIRED_FADE
+                else -> null
+            }
+            if (type != null) {
+                visualEventNonce += 1
+                visualEvent = HomeVisualEvent(type = type, nonce = visualEventNonce)
+            }
+        }
+        previousAssetStatuses = currentStatuses
+    }
     val galaxyAnimationState = rememberGalaxyAnimationState()
     val headerAlpha by animateFloatAsState(
         targetValue = if (visible) 1f else 0f,
@@ -161,6 +203,7 @@ fun HomeScreen(
             StarMapSection(
                 specs = orbitSpecs(uiState.categoryDisplaySettings),
                 categoryStats = uiState.categoryStats,
+                assets = uiState.assets,
                 totalAssetValue = uiState.stats.totalAssetValue,
                 totalDailyCost = uiState.stats.totalDailyCost,
                 amountsVisible = amountsVisible,
@@ -210,6 +253,90 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(18.dp))
             }
         }
+
+        HomeAssetEventEffect(
+            event = visualEvent,
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
+}
+
+private enum class HomeVisualEventType {
+    RETIRED_FADE,
+    SOLD_SHATTER,
+}
+
+private data class HomeVisualEvent(
+    val type: HomeVisualEventType,
+    val nonce: Int,
+)
+
+@Composable
+private fun HomeAssetEventEffect(
+    event: HomeVisualEvent?,
+    modifier: Modifier = Modifier,
+) {
+    val progress = remember { Animatable(1f) }
+    LaunchedEffect(event?.nonce) {
+        if (event != null) {
+            progress.snapTo(0f)
+            progress.animateTo(
+                targetValue = 1f,
+                animationSpec = tween(durationMillis = 1_300, easing = LinearEasing),
+            )
+        }
+    }
+    val currentEvent = event ?: return
+    val value = progress.value
+    if (value >= 1f) return
+
+    Canvas(modifier = modifier) {
+        val center = Offset(size.width / 2f, size.height * 0.43f)
+        when (currentEvent.type) {
+            HomeVisualEventType.RETIRED_FADE -> {
+                val alpha = (1f - value).coerceIn(0f, 1f)
+                val radius = 34.dp.toPx() * (1f + value)
+                drawCircle(
+                    color = SoftWhite.copy(alpha = 0.16f * alpha),
+                    radius = radius,
+                    center = Offset(size.width * 0.28f, size.height * 0.52f),
+                    style = Stroke(width = 1.dp.toPx()),
+                )
+                drawCircle(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            AccentCyan.copy(alpha = 0.28f * alpha),
+                            Color.Transparent,
+                        ),
+                    ),
+                    radius = radius * 0.70f,
+                    center = Offset(size.width * 0.28f, size.height * 0.52f),
+                )
+            }
+
+            HomeVisualEventType.SOLD_SHATTER -> {
+                val alpha = (1f - value).coerceIn(0f, 1f)
+                repeat(10) { index ->
+                    val angle = (index * 36f / 180f * PI).toFloat()
+                    val distance = value * 54.dp.toPx()
+                    val p = Offset(
+                        x = center.x + cos(angle) * distance,
+                        y = center.y + sin(angle) * distance,
+                    )
+                    drawCircle(
+                        color = if (index % 2 == 0) AccentLime.copy(alpha = alpha) else AccentCyan.copy(alpha = alpha),
+                        radius = (2.6f - (index % 3) * 0.35f).dp.toPx(),
+                        center = p,
+                    )
+                }
+                drawCircle(
+                    color = SoftWhite.copy(alpha = 0.16f * alpha),
+                    radius = 26.dp.toPx() * (1f + value * 0.8f),
+                    center = center,
+                    style = Stroke(width = 1.dp.toPx()),
+                )
+            }
+        }
     }
 }
 
@@ -220,6 +347,7 @@ private fun HeaderSection(
     onAnalysisClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val haptic = LocalHapticFeedback.current
     val dataInteraction = remember { MutableInteractionSource() }
     val dataPressed by dataInteraction.collectIsPressedAsState()
     val dataScale by animateFloatAsState(
@@ -280,7 +408,10 @@ private fun HeaderSection(
                 .clickable(
                     interactionSource = dataInteraction,
                     indication = null,
-                    onClick = onAnalysisClick,
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onAnalysisClick()
+                    },
                 ),
             color = PanelBlue.copy(alpha = 0.42f),
             shape = RoundedCornerShape(17.dp),
@@ -315,6 +446,7 @@ private fun HeaderCircleButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(
@@ -339,7 +471,10 @@ private fun HeaderCircleButton(
                 .clickable(
                     interactionSource = interactionSource,
                     indication = null,
-                    onClick = onClick,
+                    onClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onClick()
+                    },
                 ),
             contentAlignment = Alignment.Center,
         ) {
